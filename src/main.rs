@@ -7,17 +7,67 @@ use gl33::{*, global_loader::*};
 
 use beryllium::events::*;
 
+use winit::application::ApplicationHandler;
+use winit::event_loop::{ControlFlow, ActiveEventLoop};
+use winit::event::WindowEvent;
+use winit::window::*;
+
 use learn_openGL as learn;
 use learn::*;
 use learn::shader::ShaderProgram;
 use learn::texture::Texture;
 
+
+use std::time::Instant;
 use std::collections::HashSet;
-use std::time;
 
 use nalgebra_glm as glm;
 
+#[derive(Default)]
+struct BevApp {
+    window: Option<Window>,
+    window_open: bool,
+}
 
+impl ApplicationHandler for BevApp{
+  fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+    print!("RESUME");
+    let win_width = 1920;
+    let win_height = 1080;
+    let window_attributes = Window::default_attributes()
+                  .with_title("Bev Window")
+                  .with_inner_size(winit::dpi::LogicalSize::new(win_width, win_height));
+    self.window = Some(event_loop.create_window(window_attributes).expect("Can't create window"));
+    self.window_open = true;
+  }
+
+  fn window_event(&mut self, event_loop: &ActiveEventLoop, id: WindowId, event: WindowEvent) {
+    if !self.window_open { self.resumed(event_loop); }
+    match event {
+        WindowEvent::CloseRequested => {
+            println!("The close button was pressed; stopping");
+            event_loop.exit();
+        },
+        WindowEvent::RedrawRequested => {
+            // Redraw the application.
+            //
+            // It's preferable for applications that do not render continuously to render in
+            // this event rather than in AboutToWait, since rendering in here allows
+            // the program to gracefully handle redraws requested by the OS.
+
+            // Draw.
+
+            // Queue a RedrawRequested event.
+            //
+            // You only need to call this if you've determined that you need to redraw in
+            // applications which do not always need to. Applications that redraw continuously
+            // can render here instead.
+            self.window.as_ref().unwrap().request_redraw();
+        }
+        _ => (),
+    }
+}
+}
 
 ///TODO: 
 /// hash movements
@@ -25,12 +75,21 @@ use nalgebra_glm as glm;
 /// fix texture stutter
 fn main() {
 
+  let event_loop = winit::event_loop::EventLoop::new().expect("Can't make event loop");
+  event_loop.set_control_flow(ControlFlow::Poll);
+  let mut myApp: BevApp = BevApp::default();
+  let _ = event_loop.run_app(&mut myApp);
+  
+
   let mut win_width = 1920;
   let mut win_height = 1080;
 
   let sdl = create_context();
 
   let win = create_window(&sdl, "Bev Window", win_width, win_height);
+
+
+
 
   let cube_pos: [glm::Vec3; 10] = 
         [glm::vec3( 0.0, 0.0, 0.0),
@@ -153,7 +212,7 @@ unsafe {
 
   let mut angle = 0.0;
   let mut input: f32 = 0.0;
-  let mut prev_time = time::Instant::now();
+  let mut prev_time = Instant::now();
 
   let mut cam_pos = glm::vec3(0.0,0.0,3.0);
   let mut cam_front = glm::vec3(0.0,0.0,-1.0);
@@ -165,8 +224,8 @@ unsafe {
   let mut fov: f32 = 45.0;
   'main_loop: loop {
 
-    let delta_t = time::Instant::now().duration_since(prev_time).as_millis() as f32;
-    prev_time = time::Instant::now();
+    let delta_t = Instant::now().duration_since(prev_time).as_millis() as f32;
+    prev_time = Instant::now();
 
     // let fps = 1.0 / (delta_t / 1000.0);
     // println!("{}", fps);
